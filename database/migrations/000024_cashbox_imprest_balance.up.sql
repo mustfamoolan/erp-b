@@ -1,0 +1,1 @@
+ALTER TABLE cashboxes ADD COLUMN imprest_balance NUMERIC(19, 4) NOT NULL DEFAULT 0;

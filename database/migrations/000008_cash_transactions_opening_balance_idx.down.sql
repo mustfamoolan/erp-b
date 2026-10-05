@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_cash_transactions_unique_opening_balance;

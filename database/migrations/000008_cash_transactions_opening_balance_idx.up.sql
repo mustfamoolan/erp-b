@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cash_transactions_unique_opening_balance ON cash_transactions (cashbox_id) WHERE source_type = 'OPENING_BALANCE' AND status = 'COMPLETED';

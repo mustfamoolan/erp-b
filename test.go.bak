@@ -1,0 +1,16 @@
+﻿package main
+
+import (
+	"fmt"
+	"github.com/spf13/viper"
+)
+
+func main() {
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
+	fmt.Printf("User: '%s'\n", viper.GetString("DB_USERNAME"))
+	fmt.Printf("Pass: '%s'\n", viper.GetString("DB_PASSWORD"))
+}

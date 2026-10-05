@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS expenses;
+DROP SEQUENCE IF EXISTS expense_seq;

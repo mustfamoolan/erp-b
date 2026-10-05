@@ -1,0 +1,17 @@
+﻿package main
+
+import (
+	"fmt"
+	"log"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+func main() {
+	dsn := "host=127.0.0.1 user=almoq3 password=secret dbname=almoq3_db port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	_, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect: %v", err)
+	}
+	fmt.Println("Connected!")
+}
