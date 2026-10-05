@@ -142,3 +142,4 @@
 {"level":"info","ts":"2026-10-06T00:21:01.894+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
 {"level":"info","ts":"2026-10-06T00:40:31.435+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
 {"level":"info","ts":"2026-10-06T00:57:58.713+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T00:59:08.265+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}

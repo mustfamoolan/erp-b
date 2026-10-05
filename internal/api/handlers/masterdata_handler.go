@@ -38,7 +38,7 @@ func (h *MasterDataHandler) GetRequestTypes(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(types)
+	return c.JSON(fiber.Map{"data": types})
 }
 
 func (h *MasterDataHandler) CreateRequestType(c *fiber.Ctx) error {
@@ -61,7 +61,7 @@ func (h *MasterDataHandler) CreateRequestType(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(created)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": created})
 }
 
 func (h *MasterDataHandler) UpdateRequestType(c *fiber.Ctx) error {
@@ -120,7 +120,7 @@ func (h *MasterDataHandler) GetExpenseCategories(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.JSON(cats)
+	return c.JSON(fiber.Map{"data": cats})
 }
 
 func (h *MasterDataHandler) CreateExpenseCategory(c *fiber.Ctx) error {
@@ -142,7 +142,7 @@ func (h *MasterDataHandler) CreateExpenseCategory(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(created)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": created})
 }
 
 func (h *MasterDataHandler) UpdateExpenseCategory(c *fiber.Ctx) error {
