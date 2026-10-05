@@ -49,8 +49,9 @@ type CreateRequestInput struct {
 	FactoryID         uuid.UUID
 	RequestedBy       uuid.UUID
 	Type              workflow.RequestType
-	RequestTypeID     *uuid.UUID
-	ExpenseCategoryID *uuid.UUID
+	RequestTypeID        *uuid.UUID
+	ExpenseCategoryID    *uuid.UUID
+	FactoryExpenseTypeID *uuid.UUID
 	SupplierName      *string
 	ReceiverName      *string
 	ProjectName       *string
@@ -115,8 +116,9 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 		FactoryID:         input.FactoryID,
 		RequestedBy:       input.RequestedBy,
 		Type:              input.Type,
-		RequestTypeID:     input.RequestTypeID,
-		ExpenseCategoryID: input.ExpenseCategoryID,
+		RequestTypeID:        input.RequestTypeID,
+		ExpenseCategoryID:    input.ExpenseCategoryID,
+		FactoryExpenseTypeID: input.FactoryExpenseTypeID,
 		SupplierName:      input.SupplierName,
 		ReceiverName:      input.ReceiverName,
 		ProjectName:       input.ProjectName,

@@ -143,3 +143,12 @@
 {"level":"info","ts":"2026-10-06T00:40:31.435+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
 {"level":"info","ts":"2026-10-06T00:57:58.713+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
 {"level":"info","ts":"2026-10-06T00:59:08.265+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:12:35.741+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:42:27.961+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:42:47.469+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:43:21.407+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:50:17.903+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:50:37.492+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:52:31.052+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:53:26.896+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}
+{"level":"info","ts":"2026-10-06T01:54:18.397+0300","caller":"bootstrap/logger.go:51","msg":"Logger initialized successfully","level":"debug"}

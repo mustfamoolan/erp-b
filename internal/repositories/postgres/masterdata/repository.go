@@ -99,6 +99,42 @@ func (r *repository) UpdateExpenseCategory(ctx context.Context, ec *masterdata.E
 	return r.getTx(ctx).Save(ec).Error
 }
 
+func (r *repository) GetFactoryExpenseTypes(ctx context.Context, activeOnly bool) ([]masterdata.FactoryExpenseType, error) {
+	var types []masterdata.FactoryExpenseType
+	query := r.getTx(ctx).Order("sort_order asc")
+	if activeOnly {
+		query = query.Where("is_active = ?", true)
+	}
+	err := query.Find(&types).Error
+	return types, err
+}
+
+func (r *repository) GetFactoryExpenseTypeByID(ctx context.Context, id uuid.UUID) (*masterdata.FactoryExpenseType, error) {
+	var fet masterdata.FactoryExpenseType
+	err := r.getTx(ctx).First(&fet, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &fet, err
+}
+
+func (r *repository) GetFactoryExpenseTypeByCode(ctx context.Context, code string) (*masterdata.FactoryExpenseType, error) {
+	var fet masterdata.FactoryExpenseType
+	err := r.getTx(ctx).First(&fet, "code = ?", code).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &fet, err
+}
+
+func (r *repository) CreateFactoryExpenseType(ctx context.Context, fet *masterdata.FactoryExpenseType) error {
+	return r.getTx(ctx).Create(fet).Error
+}
+
+func (r *repository) UpdateFactoryExpenseType(ctx context.Context, fet *masterdata.FactoryExpenseType) error {
+	return r.getTx(ctx).Save(fet).Error
+}
+
 func (r *repository) GetAccountMapping(ctx context.Context, key string) (*masterdata.AccountMapping, error) {
 	var m masterdata.AccountMapping
 	err := r.getTx(ctx).First(&m, "key = ?", key).Error

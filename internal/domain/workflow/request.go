@@ -60,15 +60,16 @@ type FinancialRequest struct {
 	Type              RequestType     `gorm:"type:varchar(20);not null;default:'FINANCIAL'"`
 	
 	// Phase 6 Structured Fields
-	RequestTypeID     *uuid.UUID      `gorm:"type:uuid"` // Links to master data request_types
-	ExpenseCategoryID *uuid.UUID      `gorm:"type:uuid"` // Links to master data expense_categories
+	RequestTypeID        *uuid.UUID      `gorm:"type:uuid" json:"request_type_id,omitempty"` // Links to master data request_types
+	ExpenseCategoryID    *uuid.UUID      `gorm:"type:uuid" json:"expense_category_id,omitempty"` // Links to master data expense_categories
+	FactoryExpenseTypeID *uuid.UUID      `gorm:"type:uuid" json:"factory_expense_type_id,omitempty"` // Links to master data factory_expense_types
 	SupplierName      *string         `gorm:"type:varchar(255)"`
 	ReceiverName      *string         `gorm:"type:varchar(255)"`
 	ProjectName       *string         `gorm:"type:varchar(255)"`
 	Attachments       *string         `gorm:"type:jsonb"` // Store array of attachment URLs as JSON
 	ReceivingMethod   *string          `gorm:"type:varchar(50);default:'CASH'"`
 	PurchaseNumber    *string          `gorm:"type:varchar(100)"`
-	WorkType          *string          `gorm:"type:varchar(255)"`
+	WorkType          *string          `gorm:"type:varchar(255)" json:"work_type,omitempty"`
 	BarcodeSKU        *string          `gorm:"type:varchar(255)"`
 	ExchangeRate      *decimal.Decimal `gorm:"type:numeric(18,6)"`
 	OriginalAmount    *decimal.Decimal `gorm:"type:numeric(18,4)"`

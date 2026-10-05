@@ -412,6 +412,11 @@ func main() {
 	md.Put("/expense-categories/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateExpenseCategory)
 	md.Patch("/expense-categories/:id/toggle", apimw.RequirePermission(userRepo, identity.PermMasterDataToggle), masterDataHandler.ToggleExpenseCategory)
 
+	md.Get("/factory-expense-types", masterDataHandler.GetFactoryExpenseTypes)
+	md.Post("/factory-expense-types", apimw.RequirePermission(userRepo, identity.PermMasterDataCreate), masterDataHandler.CreateFactoryExpenseType)
+	md.Put("/factory-expense-types/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateFactoryExpenseType)
+	md.Patch("/factory-expense-types/:id/toggle", apimw.RequirePermission(userRepo, identity.PermMasterDataToggle), masterDataHandler.ToggleFactoryExpenseType)
+
 	// ════════════════════════════════════════════════════════
 	// EXCHANGE RATES — Multi-Currency (migration 000007)
 	// Rule 20: Only SUPER_ADMIN may update rates — enforced here.

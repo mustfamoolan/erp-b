@@ -33,6 +33,12 @@ type MasterDataService interface {
 	CreateExpenseCategory(ctx context.Context, req masterdata.ExpenseCategory, userID uuid.UUID) (*masterdata.ExpenseCategory, error)
 	UpdateExpenseCategory(ctx context.Context, id uuid.UUID, updates masterdata.ExpenseCategory, userID uuid.UUID) error
 	ToggleExpenseCategory(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error
+
+	// Factory Expense Types
+	GetFactoryExpenseTypes(ctx context.Context, activeOnly bool) ([]masterdata.FactoryExpenseType, error)
+	CreateFactoryExpenseType(ctx context.Context, req masterdata.FactoryExpenseType, userID uuid.UUID) (*masterdata.FactoryExpenseType, error)
+	UpdateFactoryExpenseType(ctx context.Context, id uuid.UUID, updates masterdata.FactoryExpenseType, userID uuid.UUID) error
+	ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error
 }
 
 type service struct {
@@ -300,6 +306,93 @@ func (s *service) ToggleExpenseCategory(ctx context.Context, id uuid.UUID, activ
 		UserID:     userID,
 		OldValues:  oldValues,
 		NewValues:  ec,
+	})
+
+	return nil
+}
+
+func (s *service) GetFactoryExpenseTypes(ctx context.Context, activeOnly bool) ([]masterdata.FactoryExpenseType, error) {
+	return s.repo.GetFactoryExpenseTypes(ctx, activeOnly)
+}
+
+func (s *service) CreateFactoryExpenseType(ctx context.Context, req masterdata.FactoryExpenseType, userID uuid.UUID) (*masterdata.FactoryExpenseType, error) {
+	existing, _ := s.repo.GetFactoryExpenseTypeByCode(ctx, req.Code)
+	if existing != nil {
+		return nil, ErrCodeExists
+	}
+
+	req.ID = uuid.New()
+	req.CreatedBy = &userID
+	req.IsActive = true
+
+	if err := s.repo.CreateFactoryExpenseType(ctx, &req); err != nil {
+		return nil, err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &req.ID,
+		EntityType: "master_data_factory_expense_type",
+		Action:     domainaudit.AuditCreate,
+		UserID:     userID,
+		NewValues:  req,
+	})
+
+	return &req, nil
+}
+
+func (s *service) UpdateFactoryExpenseType(ctx context.Context, id uuid.UUID, updates masterdata.FactoryExpenseType, userID uuid.UUID) error {
+	fet, err := s.repo.GetFactoryExpenseTypeByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if fet == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *fet
+
+	fet.Name = updates.Name
+	fet.SortOrder = updates.SortOrder
+
+	if err := s.repo.UpdateFactoryExpenseType(ctx, fet); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &fet.ID,
+		EntityType: "master_data_factory_expense_type",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  fet,
+	})
+
+	return nil
+}
+
+func (s *service) ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error {
+	fet, err := s.repo.GetFactoryExpenseTypeByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if fet == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *fet
+	fet.IsActive = active
+
+	if err := s.repo.UpdateFactoryExpenseType(ctx, fet); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &fet.ID,
+		EntityType: "master_data_factory_expense_type",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  fet,
 	})
 
 	return nil

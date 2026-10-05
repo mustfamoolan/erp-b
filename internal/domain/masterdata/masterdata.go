@@ -9,35 +9,49 @@ import (
 
 // RequestType represents a configurable financial request type (e.g., Advance, Funding)
 type RequestType struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Code        string    `gorm:"type:varchar(50);not null;uniqueIndex"`
-	Name        string    `gorm:"type:varchar(150);not null"`
-	Description string    `gorm:"type:text"`
-	IsActive    bool      `gorm:"not null;default:true"`
-	SortOrder   int       `gorm:"not null;default:0"`
-	CreatedBy   *uuid.UUID `gorm:"type:uuid"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code        string     `gorm:"type:varchar(50);not null;uniqueIndex" json:"code"`
+	Name        string     `gorm:"type:varchar(150);not null" json:"name"`
+	Description string     `gorm:"type:text" json:"description"`
+	IsActive    bool       `gorm:"not null;default:true" json:"is_active"`
+	SortOrder   int        `gorm:"not null;default:0" json:"sort_order"`
+	CreatedBy   *uuid.UUID `gorm:"type:uuid" json:"created_by,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 func (RequestType) TableName() string { return "request_types" }
 
 // ExpenseCategory represents a configurable expense category (e.g., Furniture, Machines)
 type ExpenseCategory struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Code      string     `gorm:"type:varchar(50);not null;uniqueIndex"`
-	Name      string     `gorm:"type:varchar(150);not null"`
-	ParentID  *uuid.UUID `gorm:"type:uuid"`
-	AccountID uuid.UUID  `gorm:"type:uuid;not null"`
-	IsActive  bool       `gorm:"not null;default:true"`
-	SortOrder int        `gorm:"not null;default:0"`
-	Kind      string     `gorm:"type:varchar(20);not null;default:STANDARD"`
-	CreatedBy *uuid.UUID  `gorm:"type:uuid"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code      string     `gorm:"type:varchar(50);not null;uniqueIndex" json:"code"`
+	Name      string     `gorm:"type:varchar(150);not null" json:"name"`
+	ParentID  *uuid.UUID `gorm:"type:uuid" json:"parent_id,omitempty"`
+	AccountID uuid.UUID  `gorm:"type:uuid;not null" json:"account_id"`
+	IsActive  bool       `gorm:"not null;default:true" json:"is_active"`
+	SortOrder int        `gorm:"not null;default:0" json:"sort_order"`
+	Kind      string     `gorm:"type:varchar(20);not null;default:STANDARD" json:"kind"`
+	CreatedBy *uuid.UUID `gorm:"type:uuid" json:"created_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 func (ExpenseCategory) TableName() string { return "expense_categories" }
+
+// FactoryExpenseType represents a configurable factory expense category/work type (e.g. Setup, Construction, Purchase, Operational)
+type FactoryExpenseType struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code      string     `gorm:"type:varchar(50);not null;uniqueIndex" json:"code"`
+	Name      string     `gorm:"type:varchar(150);not null" json:"name"`
+	IsActive  bool       `gorm:"not null;default:true" json:"is_active"`
+	SortOrder int        `gorm:"not null;default:0" json:"sort_order"`
+	CreatedBy *uuid.UUID `gorm:"type:uuid" json:"created_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func (FactoryExpenseType) TableName() string { return "factory_expense_types" }
 
 // Expense category kinds. SALARY follows a dedicated request path (not yet defined),
 // so generic financial requests against it are refused by the backend.
@@ -72,6 +86,13 @@ type MasterDataRepository interface {
 	GetExpenseCategoryByCode(ctx context.Context, code string) (*ExpenseCategory, error)
 	CreateExpenseCategory(ctx context.Context, ec *ExpenseCategory) error
 	UpdateExpenseCategory(ctx context.Context, ec *ExpenseCategory) error
+
+	// Factory Expense Types
+	GetFactoryExpenseTypes(ctx context.Context, activeOnly bool) ([]FactoryExpenseType, error)
+	GetFactoryExpenseTypeByID(ctx context.Context, id uuid.UUID) (*FactoryExpenseType, error)
+	GetFactoryExpenseTypeByCode(ctx context.Context, code string) (*FactoryExpenseType, error)
+	CreateFactoryExpenseType(ctx context.Context, fet *FactoryExpenseType) error
+	UpdateFactoryExpenseType(ctx context.Context, fet *FactoryExpenseType) error
 
 	// Account Mappings
 	GetAccountMapping(ctx context.Context, key string) (*AccountMapping, error)

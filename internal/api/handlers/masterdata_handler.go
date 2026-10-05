@@ -30,6 +30,13 @@ type ExpenseCategoryInput struct {
 	SortOrder int    `json:"sort_order"`
 }
 
+// FactoryExpenseTypeInput defines the payload for creating/updating a factory expense type
+type FactoryExpenseTypeInput struct {
+	Code      string `json:"code" validate:"required"`
+	Name      string `json:"name" validate:"required"`
+	SortOrder int    `json:"sort_order"`
+}
+
 // -- Request Types --
 
 func (h *MasterDataHandler) GetRequestTypes(c *fiber.Ctx) error {
@@ -190,4 +197,84 @@ func (h *MasterDataHandler) ToggleExpenseCategory(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "Expense category status updated"})
+}
+
+// -- Factory Expense Types --
+
+func (h *MasterDataHandler) GetFactoryExpenseTypes(c *fiber.Ctx) error {
+	activeOnly := c.QueryBool("active_only", false)
+	types, err := h.service.GetFactoryExpenseTypes(c.Context(), activeOnly)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": types})
+}
+
+func (h *MasterDataHandler) CreateFactoryExpenseType(c *fiber.Ctx) error {
+	var input FactoryExpenseTypeInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	userID := c.Locals("user_id").(uuid.UUID)
+
+	fet := domain.FactoryExpenseType{
+		Code:      input.Code,
+		Name:      input.Name,
+		SortOrder: input.SortOrder,
+	}
+
+	created, err := h.service.CreateFactoryExpenseType(c.Context(), fet, userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": created})
+}
+
+func (h *MasterDataHandler) UpdateFactoryExpenseType(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID format"})
+	}
+
+	var input FactoryExpenseTypeInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	userID := c.Locals("user_id").(uuid.UUID)
+
+	updates := domain.FactoryExpenseType{
+		Name:      input.Name,
+		SortOrder: input.SortOrder,
+	}
+
+	if err := h.service.UpdateFactoryExpenseType(c.Context(), id, updates, userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Factory expense type updated successfully"})
+}
+
+func (h *MasterDataHandler) ToggleFactoryExpenseType(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid ID format"})
+	}
+
+	var input struct {
+		IsActive bool `json:"is_active"`
+	}
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	userID := c.Locals("user_id").(uuid.UUID)
+
+	if err := h.service.ToggleFactoryExpenseType(c.Context(), id, input.IsActive, userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Factory expense type status updated"})
 }

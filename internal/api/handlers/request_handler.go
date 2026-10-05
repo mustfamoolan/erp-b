@@ -56,8 +56,9 @@ type createRequestJSON struct {
 	ScopeID           string                  `json:"scope_id"`
 	FactoryID         string                  `json:"factory_id"`
 	Type              string                  `json:"type"`
-	RequestTypeID     *string                 `json:"request_type_id"`
-	ExpenseCategoryID *string                 `json:"expense_category_id"`
+	RequestTypeID        *string                 `json:"request_type_id"`
+	ExpenseCategoryID    *string                 `json:"expense_category_id"`
+	FactoryExpenseTypeID *string                 `json:"factory_expense_type_id"`
 	SupplierName      *string                 `json:"supplier_name"`
 	ReceiverName      *string                 `json:"receiver_name"`
 	ProjectName       *string                 `json:"project_name"`
@@ -152,6 +153,14 @@ func (h *RequestHandler) CreateRequest(c *fiber.Ctx) error {
 		}
 	}
 
+	var factoryExpTypeID *uuid.UUID
+	if body.FactoryExpenseTypeID != nil && *body.FactoryExpenseTypeID != "" {
+		parsed, err := uuid.Parse(*body.FactoryExpenseTypeID)
+		if err == nil {
+			factoryExpTypeID = &parsed
+		}
+	}
+
 	var exchangeRate *decimal.Decimal
 	if body.ExchangeRate != nil && *body.ExchangeRate != "" {
 		parsed, err := decimal.NewFromString(*body.ExchangeRate)
@@ -173,8 +182,9 @@ func (h *RequestHandler) CreateRequest(c *fiber.Ctx) error {
 		FactoryID:         factoryID,
 		RequestedBy:       userID,
 		Type:              reqType,
-		RequestTypeID:     reqTypeID,
-		ExpenseCategoryID: expCatID,
+		RequestTypeID:        reqTypeID,
+		ExpenseCategoryID:    expCatID,
+		FactoryExpenseTypeID: factoryExpTypeID,
 		SupplierName:      body.SupplierName,
 		ReceiverName:      body.ReceiverName,
 		ProjectName:       body.ProjectName,
