@@ -45,6 +45,7 @@ func main() {
 	bootstrap.InitializeCache()
 	bootstrap.InitializeDatabase()
 	bootstrap.RunMigrations() // always runs migrations before serving
+	bootstrap.DB.Exec("UPDATE financial_requests SET status = 'SUBMITTED' WHERE status = 'DRAFT'")
 
 	// ── 2. Repositories ───────────────────────────────────────
 	// Phase 1: Identity & Organization

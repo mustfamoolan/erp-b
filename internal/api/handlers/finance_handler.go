@@ -283,6 +283,7 @@ func (h *FinanceHandler) GetCashboxTransactions(c *fiber.Ctx) error {
 
 type custodyRequestPayload struct {
 	EmployeeID  string `json:"employee_id"`
+	PersonName  string `json:"person_name"`
 	Amount      string `json:"amount"`
 	Currency    string `json:"currency"`
 	Description string `json:"description"`
@@ -302,9 +303,15 @@ func (h *FinanceHandler) WithdrawCustody(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	empID, err := uuid.Parse(req.EmployeeID)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid employee_id"})
+	var empID *uuid.UUID
+	if req.EmployeeID != "" {
+		if parsed, parseErr := uuid.Parse(req.EmployeeID); parseErr == nil {
+			empID = &parsed
+		}
+	}
+
+	if req.PersonName == "" && empID == nil && req.Description == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "يرجى تحديد اسم المستلم أو البيان"})
 	}
 
 	amt, err := decimal.NewFromString(req.Amount)
@@ -327,6 +334,7 @@ func (h *FinanceHandler) WithdrawCustody(c *fiber.Ctx) error {
 	err = h.financeSvc.WithdrawCustody(c.Context(), appfinance.CustodyRequest{
 		CashboxID:   cashboxID,
 		EmployeeID:  empID,
+		PersonName:  req.PersonName,
 		Amount:      amt,
 		Currency:    req.Currency,
 		Description: req.Description,
@@ -352,9 +360,15 @@ func (h *FinanceHandler) DepositCustody(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	empID, err := uuid.Parse(req.EmployeeID)
-	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "invalid employee_id"})
+	var empID *uuid.UUID
+	if req.EmployeeID != "" {
+		if parsed, parseErr := uuid.Parse(req.EmployeeID); parseErr == nil {
+			empID = &parsed
+		}
+	}
+
+	if req.PersonName == "" && empID == nil && req.Description == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "يرجى تحديد اسم المسلّم أو البيان"})
 	}
 
 	amt, err := decimal.NewFromString(req.Amount)
@@ -377,6 +391,7 @@ func (h *FinanceHandler) DepositCustody(c *fiber.Ctx) error {
 	err = h.financeSvc.DepositCustody(c.Context(), appfinance.CustodyRequest{
 		CashboxID:   cashboxID,
 		EmployeeID:  empID,
+		PersonName:  req.PersonName,
 		Amount:      amt,
 		Currency:    req.Currency,
 		Description: req.Description,

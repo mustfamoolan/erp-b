@@ -133,7 +133,7 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 		Description:       input.Description,
 		TotalAmount:       total,
 		Currency:          currency,
-		Status:            workflow.RequestDraft,
+		Status:            workflow.RequestSubmitted,
 	}
 
 	if err := s.requestRepo.Save(ctx, req); err != nil {
@@ -161,7 +161,7 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 	}
 
 	// Local history
-	s.appendHistory(ctx, reqID, "", workflow.RequestDraft, "CREATE", input.RequestedBy, "Request created")
+	s.appendHistory(ctx, reqID, "", workflow.RequestSubmitted, "SUBMIT", input.RequestedBy, "تم إنشاء الطلب وتقديمه للتدقيق الإداري")
 
 	// Global Audit — §34
 	if s.auditSvc != nil {
@@ -169,14 +169,14 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 		_ = s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 			UserID:     input.RequestedBy,
 			ScopeID:    &scope,
-			Action:     domainaudit.AuditCreate,
+			Action:     domainaudit.AuditSubmit,
 			EntityType: "financial_request",
 			EntityID:   &reqID,
 			NewValues: map[string]any{
 				"document_number": docNum,
 				"total_amount":    total.String(),
 				"purpose":         input.Purpose,
-				"status":          "DRAFT",
+				"status":          "SUBMITTED",
 			},
 		})
 	}

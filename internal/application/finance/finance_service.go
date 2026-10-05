@@ -409,7 +409,8 @@ func (s *FinanceService) EstablishOpeningBalance(ctx context.Context, req Establ
 // ─── Employee Custody ────────────────────────────────────────────────────────
 type CustodyRequest struct {
 	CashboxID   uuid.UUID
-	EmployeeID  uuid.UUID
+	EmployeeID  *uuid.UUID
+	PersonName  string
 	Amount      decimal.Decimal
 	Currency    string
 	Description string
@@ -420,8 +421,15 @@ func (s *FinanceService) WithdrawCustody(ctx context.Context, req CustodyRequest
 	if req.Amount.LessThanOrEqual(decimal.Zero) {
 		return cashbox.ErrAmountNegative
 	}
-	if req.Description == "" {
-		req.Description = "سحب سلفة لموظف"
+	desc := req.Description
+	if req.PersonName != "" {
+		if desc != "" {
+			desc = fmt.Sprintf("المستلم: %s — %s", req.PersonName, desc)
+		} else {
+			desc = fmt.Sprintf("المستلم: %s", req.PersonName)
+		}
+	} else if desc == "" {
+		desc = "سحب سلفة نقدية"
 	}
 
 	box, err := s.cashboxRepo.FindByID(ctx, req.CashboxID)
@@ -436,8 +444,8 @@ func (s *FinanceService) WithdrawCustody(ctx context.Context, req CustodyRequest
 		Amount:          req.Amount,
 		Currency:        req.Currency,
 		SourceType:      "EMPLOYEE_CUSTODY_WITHDRAW",
-		SourceID:        &req.EmployeeID,
-		Description:     req.Description,
+		SourceID:        req.EmployeeID,
+		Description:     desc,
 		PerformedBy:     req.PerformedBy,
 		TransactionDate: time.Now(),
 		Status:          cashbox.CashTransactionCompleted,
@@ -451,7 +459,7 @@ func (s *FinanceService) WithdrawCustody(ctx context.Context, req CustodyRequest
 
 		jeReq := appaccounting.CreateJournalEntryRequest{
 			EntryDate:   time.Now(),
-			Description: req.Description,
+			Description: desc,
 			SourceType:  "CASH_TRANSACTION",
 			SourceID:    &tx.ID,
 			ScopeID:     box.ScopeID,
@@ -461,7 +469,7 @@ func (s *FinanceService) WithdrawCustody(ctx context.Context, req CustodyRequest
 					AccountID:   custodyAcct.ID,
 					Debit:       req.Amount,
 					Credit:      decimal.Zero,
-					Description: "Employee Custody Disbursement",
+					Description: desc,
 					ScopeID:     box.ScopeID,
 				},
 				{
@@ -491,8 +499,15 @@ func (s *FinanceService) DepositCustody(ctx context.Context, req CustodyRequest)
 	if req.Amount.LessThanOrEqual(decimal.Zero) {
 		return cashbox.ErrAmountNegative
 	}
-	if req.Description == "" {
-		req.Description = "إيداع (إرجاع) سلفة من موظف"
+	desc := req.Description
+	if req.PersonName != "" {
+		if desc != "" {
+			desc = fmt.Sprintf("المسلّم: %s — %s", req.PersonName, desc)
+		} else {
+			desc = fmt.Sprintf("المسلّم: %s", req.PersonName)
+		}
+	} else if desc == "" {
+		desc = "إيداع (إرجاع) سلفة"
 	}
 
 	box, err := s.cashboxRepo.FindByID(ctx, req.CashboxID)
@@ -507,8 +522,8 @@ func (s *FinanceService) DepositCustody(ctx context.Context, req CustodyRequest)
 		Amount:          req.Amount,
 		Currency:        req.Currency,
 		SourceType:      "EMPLOYEE_CUSTODY_DEPOSIT",
-		SourceID:        &req.EmployeeID,
-		Description:     req.Description,
+		SourceID:        req.EmployeeID,
+		Description:     desc,
 		PerformedBy:     req.PerformedBy,
 		TransactionDate: time.Now(),
 		Status:          cashbox.CashTransactionCompleted,
@@ -522,7 +537,7 @@ func (s *FinanceService) DepositCustody(ctx context.Context, req CustodyRequest)
 
 		jeReq := appaccounting.CreateJournalEntryRequest{
 			EntryDate:   time.Now(),
-			Description: req.Description,
+			Description: desc,
 			SourceType:  "CASH_TRANSACTION",
 			SourceID:    &tx.ID,
 			ScopeID:     box.ScopeID,
@@ -539,7 +554,7 @@ func (s *FinanceService) DepositCustody(ctx context.Context, req CustodyRequest)
 					AccountID:   custodyAcct.ID,
 					Debit:       decimal.Zero,
 					Credit:      req.Amount,
-					Description: "Employee Custody Settlement",
+					Description: desc,
 					ScopeID:     box.ScopeID,
 				},
 			},
