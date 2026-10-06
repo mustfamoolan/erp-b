@@ -146,11 +146,15 @@ func main() {
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to save file"})
 		}
 		// Return full URL
-		port := config.Global.App.Port
-		if port == "" {
-			port = "8080"
+		baseURL := config.Global.App.URL
+		if baseURL == "" {
+			port := config.Global.App.Port
+			if port == "" {
+				port = "8080"
+			}
+			baseURL = fmt.Sprintf("http://localhost:%s", port)
 		}
-		return c.JSON(fiber.Map{"url": fmt.Sprintf("http://localhost:%s/uploads/%s", port, filename)})
+		return c.JSON(fiber.Map{"url": fmt.Sprintf("%s/uploads/%s", strings.TrimRight(baseURL, "/"), filename)})
 	})
 
 	// ════════════════════════════════════════════════════════
@@ -166,6 +170,9 @@ func main() {
 
 	// Permissions mapping
 	p.Get("/permissions", apimw.RequirePermission(userRepo, identity.PermRolesView), roleHandler.ListPermissions)
+
+	// User lookup for all authenticated users (needed for display names, signatures, DataGrids)
+	p.Get("/users/lookup", userHandler.ListUsersLookup)
 
 	// Users — §8
 	users := p.Group("/users",
@@ -355,8 +362,8 @@ func main() {
 	req.Post("/:id/complete", apimw.RequirePermission(userRepo, identity.PermRequestReceive), requestHandler.Complete)
 	req.Post("/:id/cancel", apimw.RequirePermission(userRepo, identity.PermRequestCreate), requestHandler.Cancel)
 
-	// Administration Auditor — Review
-	req.Get("", apimw.RequirePermission(userRepo, identity.PermRequestReview), requestHandler.GetAll)
+	// Administration View — all requests (Auditor, Accountant, Cashier, Admin, Factory Accountant)
+	req.Get("", apimw.RequirePermission(userRepo, identity.PermRequestView), requestHandler.GetAll)
 	req.Post("/:id/review", apimw.RequirePermission(userRepo, identity.PermRequestReview), requestHandler.StartReview)
 	req.Post("/:id/approve", apimw.RequirePermission(userRepo, identity.PermRequestReview), requestHandler.Approve)
 

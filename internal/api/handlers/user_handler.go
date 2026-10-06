@@ -42,6 +42,7 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 		Username   string `json:"username"`
 		Email      string `json:"email"`
 		FullName   string `json:"full_name"`
+		Name       string `json:"name"`
 		Status     string `json:"status"`
 		EmployeeID string `json:"employee_id,omitempty"`
 	}
@@ -52,12 +53,44 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 			Username: u.Username,
 			Email:    u.Email,
 			FullName: u.FullName,
+			Name:     u.FullName,
 			Status:   string(u.Status),
 		}
 		if u.EmployeeID != nil {
 			su.EmployeeID = u.EmployeeID.String()
 		}
 		result = append(result, su)
+	}
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// ─── GET /api/v1/users/lookup ──────────────────────────────
+
+// ListUsersLookup returns basic user info (id, name, full_name, username) for display resolution.
+// Accessible to any authenticated user so UUIDs can be resolved to employee names.
+func (h *UserHandler) ListUsersLookup(c *fiber.Ctx) error {
+	users, err := h.userSvc.ListUsers(c.Context())
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to fetch users"})
+	}
+	type lookupUser struct {
+		ID       string `json:"id"`
+		FullName string `json:"full_name"`
+		Name     string `json:"name"`
+		Username string `json:"username"`
+	}
+	result := make([]lookupUser, 0, len(users))
+	for _, u := range users {
+		displayName := u.FullName
+		if displayName == "" {
+			displayName = u.Username
+		}
+		result = append(result, lookupUser{
+			ID:       u.ID.String(),
+			FullName: displayName,
+			Name:     displayName,
+			Username: u.Username,
+		})
 	}
 	return c.JSON(fiber.Map{"data": result})
 }

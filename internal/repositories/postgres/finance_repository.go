@@ -86,8 +86,11 @@ func (r *cashTransactionRepository) Save(ctx context.Context, tx *cashbox.CashTr
 func (r *cashTransactionRepository) FindByCashbox(ctx context.Context, cashboxID uuid.UUID) ([]cashbox.CashTransaction, error) {
 	var txs []cashbox.CashTransaction
 	err := r.db.WithContext(ctx).
-		Where("cashbox_id = ?", cashboxID).
-		Order("transaction_date desc, created_at desc").
+		Table("cash_transactions").
+		Select("cash_transactions.*, COALESCE(u.full_name, u.username, 'النظام') AS performed_by_name").
+		Joins("LEFT JOIN users u ON u.id = cash_transactions.performed_by").
+		Where("cash_transactions.cashbox_id = ?", cashboxID).
+		Order("cash_transactions.transaction_date desc, cash_transactions.created_at desc").
 		Find(&txs).Error
 	return txs, err
 }

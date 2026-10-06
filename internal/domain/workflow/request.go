@@ -87,6 +87,8 @@ type FinancialRequest struct {
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 
+	RequestedByName   string           `gorm:"->;column:requested_by_name"`
+
 	Items    []RequestItem    `gorm:"foreignKey:RequestID"`
 	History  []RequestHistory `gorm:"foreignKey:RequestID"`
 }
@@ -114,14 +116,15 @@ func (RequestItem) TableName() string { return "request_items" }
 // Rule 17: Every important workflow transition must be audited.
 // This is the document history — Roadmap §40.
 type RequestHistory struct {
-	ID          uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	RequestID   uuid.UUID     `gorm:"type:uuid;not null;index"`
-	FromStatus  RequestStatus `gorm:"type:varchar(40)"`
-	ToStatus    RequestStatus `gorm:"type:varchar(40);not null"`
-	Action      string        `gorm:"type:varchar(50);not null"` // SUBMIT, APPROVE, REJECT, PAY, RECEIVE...
-	PerformedBy uuid.UUID     `gorm:"type:uuid;not null"`
-	Notes       string        `gorm:"type:text"`
-	CreatedAt   time.Time
+	ID              uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	RequestID       uuid.UUID     `gorm:"type:uuid;not null;index"`
+	FromStatus      RequestStatus `gorm:"type:varchar(40)"`
+	ToStatus        RequestStatus `gorm:"type:varchar(40);not null"`
+	Action          string        `gorm:"type:varchar(50);not null"` // SUBMIT, APPROVE, REJECT, PAY, RECEIVE...
+	PerformedBy     uuid.UUID     `gorm:"type:uuid;not null"`
+	PerformedByName string        `gorm:"->;column:performed_by_name"`
+	Notes           string        `gorm:"type:text"`
+	CreatedAt       time.Time
 }
 
 func (RequestHistory) TableName() string { return "request_history" }

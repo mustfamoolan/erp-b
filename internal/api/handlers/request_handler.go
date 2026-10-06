@@ -10,6 +10,7 @@ import (
 	appfinance "m3aml-erp/internal/application/finance"
 	appwf "m3aml-erp/internal/application/workflow"
 	"m3aml-erp/internal/domain/cashbox"
+	"m3aml-erp/internal/domain/identity"
 	"m3aml-erp/internal/domain/organization"
 	"m3aml-erp/internal/domain/workflow"
 	"m3aml-erp/internal/repositories"
@@ -208,12 +209,49 @@ func (h *RequestHandler) CreateRequest(c *fiber.Ctx) error {
 
 // ─── Get Requests ─────────────────────────────────────────────────────────────
 
-// GetAll GET /api/v1/requests — Administration view, all requests
+// GetAll GET /api/v1/requests — Administration view, filtered by user's allowed scopes
 func (h *RequestHandler) GetAll(c *fiber.Ctx) error {
 	reqs, err := h.svc.GetAll(c.Context())
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to fetch requests"})
 	}
+
+	userIDStr, ok := c.Locals(middleware.LocalUserID).(string)
+	if ok && userIDStr != "" {
+		userID, err := uuid.Parse(userIDStr)
+		if err == nil {
+			// Check if user has global scope.all permission (Administrator)
+			perms, _ := h.userRepo.GetUserPermissions(c.Context(), userID, uuid.Nil)
+			hasScopeAll := false
+			for _, p := range perms {
+				if p == identity.PermScopeAll {
+					hasScopeAll = true
+					break
+				}
+			}
+
+			// If not super-admin/scope.all, filter to only requests in user's assigned scopes
+			if !hasScopeAll {
+				allowedScopes, err := h.userRepo.GetUserScopeAccess(c.Context(), userID)
+				if err != nil || len(allowedScopes) == 0 {
+					reqs = []workflow.FinancialRequest{}
+				} else {
+					scopeSet := make(map[uuid.UUID]bool)
+					for _, s := range allowedScopes {
+						scopeSet[s] = true
+					}
+					var filtered []workflow.FinancialRequest
+					for _, r := range reqs {
+						if scopeSet[r.ScopeID] || scopeSet[r.FactoryID] {
+							filtered = append(filtered, r)
+						}
+					}
+					reqs = filtered
+				}
+			}
+		}
+	}
+
 	return c.JSON(fiber.Map{"data": reqs})
 }
 

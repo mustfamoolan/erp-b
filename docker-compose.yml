@@ -3,37 +3,60 @@ version: '3.8'
 services:
   app:
     build: .
+    restart: always
     ports:
-      - "${APP_PORT:-8000}:8000"
-    volumes:
-      - .:/app
-      - /app/vendor
+      - "8080:8080"
     environment:
+      - APP_NAME=m3aml-ERP
       - APP_ENV=production
+      - APP_KEY=a9645cf50c2b58166f1a696123ce1117
+      - APP_DEBUG=false
+      - APP_URL=https://sanad-erp.tech
+      - APP_PORT=8080
+      - DB_DRIVER=postgres
       - DB_HOST=db
-      - REDIS_HOST=redis
+      - DB_PORT=5432
+      - DB_DATABASE=almoq3_db
+      - DB_USERNAME=almoq3
+      - DB_PASSWORD=secret
+      - CACHE_DRIVER=redis
+      - CACHE_HOST=redis
+      - CACHE_PORT=6379
+      - CACHE_PASSWORD=
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/storage/logs
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   db:
     image: postgres:15-alpine
+    restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME:-almoq3}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
-      POSTGRES_DB: ${DB_DATABASE:-almoq3_db}
+      POSTGRES_USER: almoq3
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: almoq3_db
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U almoq3 -d almoq3_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: always
     volumes:
       - redis_data:/data
 
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
+  logs_data:

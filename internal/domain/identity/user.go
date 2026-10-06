@@ -45,6 +45,7 @@ const (
 	RoleAdministrator     RoleName = "ADMINISTRATOR"
 	RoleAuditor           RoleName = "AUDITOR"
 	RoleAccountant        RoleName = "ACCOUNTANT"
+	RoleCentralCashier    RoleName = "CENTRAL_CASHIER"
 	RoleFactoryAccountant RoleName = "FACTORY_ACCOUNTANT"
 	RoleFactoryEmployee   RoleName = "FACTORY_EMPLOYEE"
 )

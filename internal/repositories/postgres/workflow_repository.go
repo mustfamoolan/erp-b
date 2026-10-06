@@ -32,9 +32,16 @@ func (r *financialRequestRepository) Update(ctx context.Context, req *workflow.F
 func (r *financialRequestRepository) FindByID(ctx context.Context, id uuid.UUID) (*workflow.FinancialRequest, error) {
 	var req workflow.FinancialRequest
 	err := r.db.WithContext(ctx).
+		Table("financial_requests").
+		Select("financial_requests.*, COALESCE(users.full_name, users.username, 'المستخدم') AS requested_by_name").
+		Joins("LEFT JOIN users ON users.id = financial_requests.requested_by").
 		Preload("Items").
-		Preload("History").
-		First(&req, "id = ?", id).Error
+		Preload("History", func(db *gorm.DB) *gorm.DB {
+			return db.Select("request_history.*, COALESCE(users.full_name, users.username, 'النظام') AS performed_by_name").
+				Joins("LEFT JOIN users ON users.id = request_history.performed_by").
+				Order("request_history.created_at asc")
+		}).
+		First(&req, "financial_requests.id = ?", id).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -43,7 +50,17 @@ func (r *financialRequestRepository) FindByID(ctx context.Context, id uuid.UUID)
 
 func (r *financialRequestRepository) FindByDocumentNumber(ctx context.Context, number string) (*workflow.FinancialRequest, error) {
 	var req workflow.FinancialRequest
-	err := r.db.WithContext(ctx).First(&req, "document_number = ?", number).Error
+	err := r.db.WithContext(ctx).
+		Table("financial_requests").
+		Select("financial_requests.*, COALESCE(users.full_name, users.username, 'المستخدم') AS requested_by_name").
+		Joins("LEFT JOIN users ON users.id = financial_requests.requested_by").
+		Preload("Items").
+		Preload("History", func(db *gorm.DB) *gorm.DB {
+			return db.Select("request_history.*, COALESCE(users.full_name, users.username, 'النظام') AS performed_by_name").
+				Joins("LEFT JOIN users ON users.id = request_history.performed_by").
+				Order("request_history.created_at asc")
+		}).
+		First(&req, "financial_requests.document_number = ?", number).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -53,16 +70,35 @@ func (r *financialRequestRepository) FindByDocumentNumber(ctx context.Context, n
 func (r *financialRequestRepository) FindByScope(ctx context.Context, scopeID uuid.UUID) ([]workflow.FinancialRequest, error) {
 	var reqs []workflow.FinancialRequest
 	err := r.db.WithContext(ctx).
+		Table("financial_requests").
+		Select("financial_requests.*, COALESCE(users.full_name, users.username, 'المستخدم') AS requested_by_name").
+		Joins("LEFT JOIN users ON users.id = financial_requests.requested_by").
 		Preload("Items").
-		Where("scope_id = ?", scopeID).
-		Order("created_at desc").
+		Preload("History", func(db *gorm.DB) *gorm.DB {
+			return db.Select("request_history.*, COALESCE(users.full_name, users.username, 'النظام') AS performed_by_name").
+				Joins("LEFT JOIN users ON users.id = request_history.performed_by").
+				Order("request_history.created_at asc")
+		}).
+		Where("financial_requests.scope_id = ?", scopeID).
+		Order("financial_requests.created_at desc").
 		Find(&reqs).Error
 	return reqs, err
 }
 
 func (r *financialRequestRepository) FindAll(ctx context.Context) ([]workflow.FinancialRequest, error) {
 	var reqs []workflow.FinancialRequest
-	err := r.db.WithContext(ctx).Preload("Items").Order("created_at desc").Find(&reqs).Error
+	err := r.db.WithContext(ctx).
+		Table("financial_requests").
+		Select("financial_requests.*, COALESCE(users.full_name, users.username, 'المستخدم') AS requested_by_name").
+		Joins("LEFT JOIN users ON users.id = financial_requests.requested_by").
+		Preload("Items").
+		Preload("History", func(db *gorm.DB) *gorm.DB {
+			return db.Select("request_history.*, COALESCE(users.full_name, users.username, 'النظام') AS performed_by_name").
+				Joins("LEFT JOIN users ON users.id = request_history.performed_by").
+				Order("request_history.created_at asc")
+		}).
+		Order("financial_requests.created_at desc").
+		Find(&reqs).Error
 	return reqs, err
 }
 
@@ -106,8 +142,11 @@ func (r *requestHistoryRepository) Save(ctx context.Context, h *workflow.Request
 func (r *requestHistoryRepository) FindByRequest(ctx context.Context, requestID uuid.UUID) ([]workflow.RequestHistory, error) {
 	var history []workflow.RequestHistory
 	err := r.db.WithContext(ctx).
-		Where("request_id = ?", requestID).
-		Order("created_at asc").
+		Table("request_history").
+		Select("request_history.*, COALESCE(users.full_name, users.username, 'النظام') AS performed_by_name").
+		Joins("LEFT JOIN users ON users.id = request_history.performed_by").
+		Where("request_history.request_id = ?", requestID).
+		Order("request_history.created_at asc").
 		Find(&history).Error
 	return history, err
 }
