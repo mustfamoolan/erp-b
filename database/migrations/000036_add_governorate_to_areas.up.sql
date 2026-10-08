@@ -1,0 +1,1 @@
+ALTER TABLE areas ADD COLUMN IF NOT EXISTS governorate VARCHAR(100) DEFAULT 'بغداد';

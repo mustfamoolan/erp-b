@@ -33,7 +33,7 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*identity.
 
 func (r *userRepository) FindByUsername(ctx context.Context, username string) (*identity.User, error) {
 	var user identity.User
-	err := r.db.WithContext(ctx).First(&user, "username = ?", username).Error
+	err := r.db.WithContext(ctx).First(&user, "username = ? OR full_name = ?", username, username).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

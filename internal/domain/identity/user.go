@@ -52,15 +52,15 @@ const (
 
 // Role is a named collection of permissions (Roadmap §9).
 type Role struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Name        RoleName  `gorm:"type:varchar(50);not null;uniqueIndex"`
-	DisplayName string    `gorm:"type:varchar(100);not null"`
-	Description string    `gorm:"type:text"`
-	IsSystem    bool      `gorm:"not null;default:false"` // system roles cannot be deleted
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name        RoleName  `gorm:"type:varchar(50);not null;uniqueIndex" json:"name"`
+	DisplayName string    `gorm:"type:varchar(100);not null" json:"display_name"`
+	Description string    `gorm:"type:text" json:"description"`
+	IsSystem    bool      `gorm:"not null;default:false" json:"is_system"` // system roles cannot be deleted
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 
-	Permissions []RolePermission `gorm:"foreignKey:RoleID"`
+	Permissions []RolePermission `gorm:"foreignKey:RoleID" json:"permissions,omitempty"`
 }
 
 func (Role) TableName() string {

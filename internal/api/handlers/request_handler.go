@@ -51,6 +51,7 @@ type createRequestItemJSON struct {
 	UnitID             *string `json:"unit_id"`
 	EstimatedUnitPrice string  `json:"estimated_unit_price"`
 	Notes              string  `json:"notes"`
+	ReceiptNumber      *string `json:"receipt_number"`
 }
 
 type createRequestJSON struct {
@@ -70,6 +71,9 @@ type createRequestJSON struct {
 	BarcodeSKU        *string                 `json:"barcode_sku"`
 	ExchangeRate      *string                 `json:"exchange_rate"`
 	OriginalAmount    *string                 `json:"original_amount"`
+	AdvanceSequenceNumber *int                `json:"advance_sequence_number"`
+	ReceivingLocation     *string             `json:"receiving_location"`
+	ReceiverPhone         *string             `json:"receiver_phone"`
 	Purpose           string                  `json:"purpose"`
 	Description       string                  `json:"description"`
 	Currency          string                  `json:"currency"`
@@ -130,6 +134,7 @@ func (h *RequestHandler) CreateRequest(c *fiber.Ctx) error {
 			UnitID:             unitID,
 			EstimatedUnitPrice: price,
 			Notes:              it.Notes,
+			ReceiptNumber:      it.ReceiptNumber,
 		})
 	}
 
@@ -179,32 +184,52 @@ func (h *RequestHandler) CreateRequest(c *fiber.Ctx) error {
 	}
 
 	req, err := h.svc.CreateRequest(c.Context(), appwf.CreateRequestInput{
-		ScopeID:           scopeID,
-		FactoryID:         factoryID,
-		RequestedBy:       userID,
-		Type:              reqType,
-		RequestTypeID:        reqTypeID,
-		ExpenseCategoryID:    expCatID,
-		FactoryExpenseTypeID: factoryExpTypeID,
-		SupplierName:      body.SupplierName,
-		ReceiverName:      body.ReceiverName,
-		ProjectName:       body.ProjectName,
-		Attachments:       body.Attachments,
-		ReceivingMethod:   body.ReceivingMethod,
-		PurchaseNumber:    body.PurchaseNumber,
-		WorkType:          body.WorkType,
-		BarcodeSKU:        body.BarcodeSKU,
-		ExchangeRate:      exchangeRate,
-		OriginalAmount:    originalAmount,
-		Purpose:           body.Purpose,
-		Description:       body.Description,
-		Currency:          body.Currency,
-		Items:             items,
+		ScopeID:               scopeID,
+		FactoryID:             factoryID,
+		RequestedBy:           userID,
+		Type:                  reqType,
+		RequestTypeID:         reqTypeID,
+		ExpenseCategoryID:     expCatID,
+		FactoryExpenseTypeID:  factoryExpTypeID,
+		SupplierName:          body.SupplierName,
+		ReceiverName:          body.ReceiverName,
+		ProjectName:           body.ProjectName,
+		Attachments:           body.Attachments,
+		ReceivingMethod:       body.ReceivingMethod,
+		PurchaseNumber:        body.PurchaseNumber,
+		WorkType:              body.WorkType,
+		BarcodeSKU:            body.BarcodeSKU,
+		ExchangeRate:          exchangeRate,
+		OriginalAmount:        originalAmount,
+		AdvanceSequenceNumber: body.AdvanceSequenceNumber,
+		ReceivingLocation:     body.ReceivingLocation,
+		ReceiverPhone:         body.ReceiverPhone,
+		Purpose:               body.Purpose,
+		Description:           body.Description,
+		Currency:              body.Currency,
+		Items:                 items,
 	})
 	if err != nil {
 		return c.Status(422).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.Status(201).JSON(fiber.Map{"data": req})
+}
+
+// GetNextAdvanceSequence GET /api/v1/requests/next-advance-seq?factory_id=...
+func (h *RequestHandler) GetNextAdvanceSequence(c *fiber.Ctx) error {
+	factoryIDStr := c.Query("factory_id")
+	if factoryIDStr == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "factory_id is required"})
+	}
+	factoryID, err := uuid.Parse(factoryIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid factory_id"})
+	}
+	seq, err := h.svc.GetNextAdvanceSequence(c.Context(), factoryID)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"next_seq": seq})
 }
 
 // ─── Get Requests ─────────────────────────────────────────────────────────────

@@ -94,9 +94,50 @@ type MasterDataRepository interface {
 	CreateFactoryExpenseType(ctx context.Context, fet *FactoryExpenseType) error
 	UpdateFactoryExpenseType(ctx context.Context, fet *FactoryExpenseType) error
 
+	// Receiving Methods
+	GetReceivingMethods(ctx context.Context, activeOnly bool) ([]ReceivingMethod, error)
+	GetReceivingMethodByID(ctx context.Context, id uuid.UUID) (*ReceivingMethod, error)
+	GetReceivingMethodByCode(ctx context.Context, code string) (*ReceivingMethod, error)
+	CreateReceivingMethod(ctx context.Context, rm *ReceivingMethod) error
+	UpdateReceivingMethod(ctx context.Context, rm *ReceivingMethod) error
+
+	// Units of Measure
+	GetUnits(ctx context.Context, activeOnly bool) ([]UnitOfMeasure, error)
+	GetUnitByID(ctx context.Context, id uuid.UUID) (*UnitOfMeasure, error)
+	GetUnitByCode(ctx context.Context, code string) (*UnitOfMeasure, error)
+	CreateUnit(ctx context.Context, u *UnitOfMeasure) error
+	UpdateUnit(ctx context.Context, u *UnitOfMeasure) error
+
 	// Account Mappings
 	GetAccountMapping(ctx context.Context, key string) (*AccountMapping, error)
 
 	// Transactions
 	ExecuteInTx(ctx context.Context, fn func(txCtx context.Context) error) error
 }
+
+// ReceivingMethod represents a configurable receiving method (e.g., Cash, Transfer, Check, Card)
+type ReceivingMethod struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code      string     `gorm:"type:varchar(50);not null;uniqueIndex" json:"code"`
+	Name      string     `gorm:"type:varchar(150);not null" json:"name"`
+	IsActive  bool       `gorm:"not null;default:true" json:"is_active"`
+	SortOrder int        `gorm:"not null;default:0" json:"sort_order"`
+	CreatedBy *uuid.UUID `gorm:"type:uuid" json:"created_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func (ReceivingMethod) TableName() string { return "receiving_methods" }
+
+// UnitOfMeasure represents a configurable unit of measure (e.g., Piece, Meter, Box, KG)
+type UnitOfMeasure struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Code      string    `gorm:"type:varchar(20);not null;uniqueIndex" json:"code"`
+	Name      string    `gorm:"type:varchar(100);not null" json:"name"`
+	IsActive  bool      `gorm:"not null;default:true" json:"is_active"`
+	SortOrder int       `gorm:"not null;default:0" json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (UnitOfMeasure) TableName() string { return "units_of_measure" }
+

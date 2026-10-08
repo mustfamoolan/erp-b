@@ -102,6 +102,17 @@ func (r *financialRequestRepository) FindAll(ctx context.Context) ([]workflow.Fi
 	return reqs, err
 }
 
+func (r *financialRequestRepository) GetNextAdvanceSequence(ctx context.Context, factoryID uuid.UUID) (int, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Table("financial_requests").
+		Where("factory_id = ? OR scope_id = ?", factoryID, factoryID).
+		Count(&count).Error
+	if err != nil {
+		return 1, err
+	}
+	return int(count) + 1, nil
+}
+
 // ─── Request Item Repository ──────────────────────────────────────────────────
 
 type requestItemRepository struct {

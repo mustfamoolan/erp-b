@@ -62,6 +62,9 @@ type CreateRequestInput struct {
 	BarcodeSKU        *string
 	ExchangeRate      *decimal.Decimal
 	OriginalAmount    *decimal.Decimal
+	AdvanceSequenceNumber *int
+	ReceivingLocation     *string
+	ReceiverPhone         *string
 	Purpose           string
 	Description       string
 	Currency          string
@@ -76,6 +79,7 @@ type CreateRequestItemInput struct {
 	UnitID             *uuid.UUID
 	EstimatedUnitPrice decimal.Decimal
 	Notes              string
+	ReceiptNumber      *string
 }
 
 // CreateRequest creates a new request in DRAFT status with generated document number and barcode.
@@ -101,10 +105,23 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 	for _, item := range input.Items {
 		total = total.Add(item.EstimatedUnitPrice.Mul(item.Quantity))
 	}
+	if total.IsZero() && input.OriginalAmount != nil && !input.OriginalAmount.IsZero() {
+		total = *input.OriginalAmount
+	}
 
 	currency := input.Currency
 	if currency == "" {
 		currency = "SAR"
+	}
+
+	var advSeq *int
+	if input.AdvanceSequenceNumber != nil && *input.AdvanceSequenceNumber > 0 {
+		advSeq = input.AdvanceSequenceNumber
+	} else {
+		next, err := s.requestRepo.GetNextAdvanceSequence(ctx, input.FactoryID)
+		if err == nil {
+			advSeq = &next
+		}
 	}
 
 	reqID := uuid.New()
@@ -129,6 +146,9 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 		BarcodeSKU:        input.BarcodeSKU,
 		ExchangeRate:      input.ExchangeRate,
 		OriginalAmount:    input.OriginalAmount,
+		AdvanceSequenceNumber: advSeq,
+		ReceivingLocation:     input.ReceivingLocation,
+		ReceiverPhone:         input.ReceiverPhone,
 		Purpose:           input.Purpose,
 		Description:       input.Description,
 		TotalAmount:       total,
@@ -154,6 +174,7 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 			EstimatedUnitPrice: i.EstimatedUnitPrice,
 			EstimatedTotal:     lineTotal,
 			Notes:              i.Notes,
+			ReceiptNumber:      i.ReceiptNumber,
 		})
 	}
 	if err := s.itemRepo.SaveAll(ctx, items); err != nil {
@@ -380,6 +401,11 @@ func (s *RequestService) GetAll(ctx context.Context) ([]workflow.FinancialReques
 // GetHistory returns the immutable audit trail for a request
 func (s *RequestService) GetHistory(ctx context.Context, requestID uuid.UUID) ([]workflow.RequestHistory, error) {
 	return s.historyRepo.FindByRequest(ctx, requestID)
+}
+
+// GetNextAdvanceSequence returns the next sequential advance number for a factory
+func (s *RequestService) GetNextAdvanceSequence(ctx context.Context, factoryID uuid.UUID) (int, error) {
+	return s.requestRepo.GetNextAdvanceSequence(ctx, factoryID)
 }
 
 // ─── Internal Helpers ─────────────────────────────────────────────────────────

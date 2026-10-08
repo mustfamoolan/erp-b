@@ -15,6 +15,7 @@ type FinancialRequestRepository interface {
 	FindByDocumentNumber(ctx context.Context, number string) (*workflow.FinancialRequest, error)
 	FindByScope(ctx context.Context, scopeID uuid.UUID) ([]workflow.FinancialRequest, error)
 	FindAll(ctx context.Context) ([]workflow.FinancialRequest, error)
+	GetNextAdvanceSequence(ctx context.Context, factoryID uuid.UUID) (int, error)
 }
 
 // RequestItemRepository defines persistence for RequestItems

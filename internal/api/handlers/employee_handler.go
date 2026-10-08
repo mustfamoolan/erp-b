@@ -237,8 +237,25 @@ func (h *EmployeeHandler) CreateEmployee(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid request body"})
 	}
-	if req.ScopeID == "" || req.FullName == "" {
-		return c.Status(400).JSON(fiber.Map{"error": "scope_id and full_name are required"})
+	if req.ScopeID == "" && len(req.ScopeIDs) > 0 {
+		req.ScopeID = req.ScopeIDs[0]
+	}
+	if req.ScopeID == "" {
+		scopes, _ := h.scopeRepo.FindAll(c.Context())
+		if len(scopes) > 0 {
+			req.ScopeID = scopes[0].ID.String()
+		}
+	}
+	if req.FullName == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "full_name is required"})
+	}
+
+	if req.JobTitle == "" {
+		if req.RoleName != "" {
+			req.JobTitle = req.RoleName
+		} else {
+			req.JobTitle = "موظف"
+		}
 	}
 
 	if req.EmployeeNo == "" {
@@ -303,7 +320,7 @@ func (h *EmployeeHandler) CreateEmployee(c *fiber.Ctx) error {
 			req.Username = "emp" + req.EmployeeNo
 		}
 		if req.Password == "" {
-			req.Password = "123456" // Default password
+			req.Password = "12345678" // Default password
 		}
 
 		userReq := appidentity.CreateUserRequest{

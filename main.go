@@ -181,6 +181,7 @@ func main() {
 	users.Get("/", userHandler.ListUsers)
 	users.Post("/", userHandler.CreateUser)
 	users.Get("/:id", userHandler.GetUser)
+	users.Put("/:id/credentials", userHandler.UpdateCredentials)
 
 	// User → Role assignment — §9
 	users.Post("/:id/roles", userHandler.AssignRole)
@@ -352,6 +353,7 @@ func main() {
 
 	// Factory Accountant — Create, view own requests
 	req.Post("", apimw.RequirePermission(userRepo, identity.PermRequestCreate), requestHandler.CreateRequest)
+	req.Get("/next-advance-seq", apimw.RequirePermission(userRepo, identity.PermRequestCreate), requestHandler.GetNextAdvanceSequence)
 	req.Get("/scope/:scopeID", apimw.RequirePermission(userRepo, identity.PermRequestView), requestHandler.GetByScope)
 	req.Get("/:id", apimw.RequirePermission(userRepo, identity.PermRequestView), requestHandler.GetByID)
 	req.Get("/:id/history", apimw.RequirePermission(userRepo, identity.PermRequestView), requestHandler.GetHistory)
@@ -424,6 +426,16 @@ func main() {
 	md.Post("/factory-expense-types", apimw.RequirePermission(userRepo, identity.PermMasterDataCreate), masterDataHandler.CreateFactoryExpenseType)
 	md.Put("/factory-expense-types/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateFactoryExpenseType)
 	md.Patch("/factory-expense-types/:id/toggle", apimw.RequirePermission(userRepo, identity.PermMasterDataToggle), masterDataHandler.ToggleFactoryExpenseType)
+
+	md.Get("/receiving-methods", masterDataHandler.GetReceivingMethods)
+	md.Post("/receiving-methods", apimw.RequirePermission(userRepo, identity.PermMasterDataCreate), masterDataHandler.CreateReceivingMethod)
+	md.Put("/receiving-methods/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateReceivingMethod)
+	md.Patch("/receiving-methods/:id/toggle", apimw.RequirePermission(userRepo, identity.PermMasterDataToggle), masterDataHandler.ToggleReceivingMethod)
+
+	md.Get("/units", masterDataHandler.GetUnits)
+	md.Post("/units", apimw.RequirePermission(userRepo, identity.PermMasterDataCreate), masterDataHandler.CreateUnit)
+	md.Put("/units/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateUnit)
+	md.Patch("/units/:id/toggle", apimw.RequirePermission(userRepo, identity.PermMasterDataToggle), masterDataHandler.ToggleUnit)
 
 	// ════════════════════════════════════════════════════════
 	// EXCHANGE RATES — Multi-Currency (migration 000007)

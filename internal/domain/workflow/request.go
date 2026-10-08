@@ -77,6 +77,11 @@ type FinancialRequest struct {
 	DisbursedAt       *time.Time       `gorm:"type:timestamptz"`
 	DeliveredAt       *time.Time       `gorm:"type:timestamptz"`
 	
+	// Phase 11 Fields (Advance Voucher Fields)
+	AdvanceSequenceNumber *int    `gorm:"type:int" json:"advance_sequence_number,omitempty"`
+	ReceivingLocation     *string `gorm:"type:varchar(255)" json:"receiving_location,omitempty"`
+	ReceiverPhone         *string `gorm:"type:varchar(50)" json:"receiver_phone,omitempty"`
+
 	RequestDate       time.Time        `gorm:"type:date;not null"`
 	RequiredDate      *time.Time       `gorm:"type:date"`
 	Purpose           string           `gorm:"type:varchar(500);not null"`
@@ -108,6 +113,7 @@ type RequestItem struct {
 	EstimatedUnitPrice decimal.Decimal `gorm:"type:numeric(18,4);not null;default:0"`
 	EstimatedTotal    decimal.Decimal `gorm:"type:numeric(18,4);not null;default:0"`
 	Notes             string          `gorm:"type:text"`
+	ReceiptNumber     *string         `gorm:"type:varchar(100)" json:"receipt_number,omitempty"`
 }
 
 func (RequestItem) TableName() string { return "request_items" }

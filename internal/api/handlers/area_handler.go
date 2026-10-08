@@ -19,6 +19,7 @@ func NewAreaHandler(svc organization.AreaService) *AreaHandler {
 type CreateAreaRequest struct {
 	Name        string `json:"name"`
 	Code        string `json:"code"`
+	Governorate string `json:"governorate"`
 	Description string `json:"description"`
 }
 
@@ -28,7 +29,7 @@ func (h *AreaHandler) CreateArea(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	area, err := h.svc.CreateArea(c.Context(), req.Name, req.Code, req.Description)
+	area, err := h.svc.CreateArea(c.Context(), req.Name, req.Code, req.Governorate, req.Description)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -39,6 +40,7 @@ func (h *AreaHandler) CreateArea(c *fiber.Ctx) error {
 type UpdateAreaRequest struct {
 	Name        string               `json:"name"`
 	Code        string               `json:"code"`
+	Governorate string               `json:"governorate"`
 	Description string               `json:"description"`
 	Status      domainorg.AreaStatus `json:"status"`
 }
@@ -55,7 +57,7 @@ func (h *AreaHandler) UpdateArea(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
 	}
 
-	area, err := h.svc.UpdateArea(c.Context(), id, req.Name, req.Code, req.Description, req.Status)
+	area, err := h.svc.UpdateArea(c.Context(), id, req.Name, req.Code, req.Governorate, req.Description, req.Status)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}

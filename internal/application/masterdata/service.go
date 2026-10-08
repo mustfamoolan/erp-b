@@ -39,6 +39,18 @@ type MasterDataService interface {
 	CreateFactoryExpenseType(ctx context.Context, req masterdata.FactoryExpenseType, userID uuid.UUID) (*masterdata.FactoryExpenseType, error)
 	UpdateFactoryExpenseType(ctx context.Context, id uuid.UUID, updates masterdata.FactoryExpenseType, userID uuid.UUID) error
 	ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error
+
+	// Receiving Methods
+	GetReceivingMethods(ctx context.Context, activeOnly bool) ([]masterdata.ReceivingMethod, error)
+	CreateReceivingMethod(ctx context.Context, req masterdata.ReceivingMethod, userID uuid.UUID) (*masterdata.ReceivingMethod, error)
+	UpdateReceivingMethod(ctx context.Context, id uuid.UUID, updates masterdata.ReceivingMethod, userID uuid.UUID) error
+	ToggleReceivingMethod(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error
+
+	// Units of Measure
+	GetUnits(ctx context.Context, activeOnly bool) ([]masterdata.UnitOfMeasure, error)
+	CreateUnit(ctx context.Context, req masterdata.UnitOfMeasure, userID uuid.UUID) (*masterdata.UnitOfMeasure, error)
+	UpdateUnit(ctx context.Context, id uuid.UUID, updates masterdata.UnitOfMeasure, userID uuid.UUID) error
+	ToggleUnit(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error
 }
 
 type service struct {
@@ -397,3 +409,193 @@ func (s *service) ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, ac
 
 	return nil
 }
+
+// ─── Receiving Methods ───────────────────────────────────────────────────────
+
+func (s *service) GetReceivingMethods(ctx context.Context, activeOnly bool) ([]masterdata.ReceivingMethod, error) {
+	return s.repo.GetReceivingMethods(ctx, activeOnly)
+}
+
+func (s *service) CreateReceivingMethod(ctx context.Context, req masterdata.ReceivingMethod, userID uuid.UUID) (*masterdata.ReceivingMethod, error) {
+	if strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("code and name are required")
+	}
+
+	existing, err := s.repo.GetReceivingMethodByCode(ctx, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, ErrCodeExists
+	}
+
+	req.ID = uuid.New()
+	req.IsActive = true
+	req.CreatedBy = &userID
+
+	if err := s.repo.CreateReceivingMethod(ctx, &req); err != nil {
+		return nil, err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &req.ID,
+		EntityType: "master_data_receiving_method",
+		Action:     domainaudit.AuditCreate,
+		UserID:     userID,
+		NewValues:  req,
+	})
+
+	return &req, nil
+}
+
+func (s *service) UpdateReceivingMethod(ctx context.Context, id uuid.UUID, updates masterdata.ReceivingMethod, userID uuid.UUID) error {
+	rm, err := s.repo.GetReceivingMethodByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if rm == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *rm
+	rm.Name = updates.Name
+	rm.SortOrder = updates.SortOrder
+
+	if err := s.repo.UpdateReceivingMethod(ctx, rm); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &rm.ID,
+		EntityType: "master_data_receiving_method",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  rm,
+	})
+
+	return nil
+}
+
+func (s *service) ToggleReceivingMethod(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error {
+	rm, err := s.repo.GetReceivingMethodByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if rm == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *rm
+	rm.IsActive = active
+
+	if err := s.repo.UpdateReceivingMethod(ctx, rm); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &rm.ID,
+		EntityType: "master_data_receiving_method",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  rm,
+	})
+
+	return nil
+}
+
+// ─── Units of Measure ────────────────────────────────────────────────────────
+
+func (s *service) GetUnits(ctx context.Context, activeOnly bool) ([]masterdata.UnitOfMeasure, error) {
+	return s.repo.GetUnits(ctx, activeOnly)
+}
+
+func (s *service) CreateUnit(ctx context.Context, req masterdata.UnitOfMeasure, userID uuid.UUID) (*masterdata.UnitOfMeasure, error) {
+	if strings.TrimSpace(req.Code) == "" || strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("code and name are required")
+	}
+
+	existing, err := s.repo.GetUnitByCode(ctx, req.Code)
+	if err != nil {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, ErrCodeExists
+	}
+
+	req.ID = uuid.New()
+	req.IsActive = true
+
+	if err := s.repo.CreateUnit(ctx, &req); err != nil {
+		return nil, err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &req.ID,
+		EntityType: "master_data_unit_of_measure",
+		Action:     domainaudit.AuditCreate,
+		UserID:     userID,
+		NewValues:  req,
+	})
+
+	return &req, nil
+}
+
+func (s *service) UpdateUnit(ctx context.Context, id uuid.UUID, updates masterdata.UnitOfMeasure, userID uuid.UUID) error {
+	u, err := s.repo.GetUnitByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if u == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *u
+	u.Name = updates.Name
+	u.SortOrder = updates.SortOrder
+
+	if err := s.repo.UpdateUnit(ctx, u); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &u.ID,
+		EntityType: "master_data_unit_of_measure",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  u,
+	})
+
+	return nil
+}
+
+func (s *service) ToggleUnit(ctx context.Context, id uuid.UUID, active bool, userID uuid.UUID) error {
+	u, err := s.repo.GetUnitByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if u == nil {
+		return ErrNotFound
+	}
+
+	oldValues := *u
+	u.IsActive = active
+
+	if err := s.repo.UpdateUnit(ctx, u); err != nil {
+		return err
+	}
+
+	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
+		EntityID:   &u.ID,
+		EntityType: "master_data_unit_of_measure",
+		Action:     domainaudit.AuditUpdate,
+		UserID:     userID,
+		OldValues:  oldValues,
+		NewValues:  u,
+	})
+
+	return nil
+}
+

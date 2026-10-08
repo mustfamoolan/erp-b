@@ -135,6 +135,78 @@ func (r *repository) UpdateFactoryExpenseType(ctx context.Context, fet *masterda
 	return r.getTx(ctx).Save(fet).Error
 }
 
+func (r *repository) GetReceivingMethods(ctx context.Context, activeOnly bool) ([]masterdata.ReceivingMethod, error) {
+	var methods []masterdata.ReceivingMethod
+	query := r.getTx(ctx).Order("sort_order asc")
+	if activeOnly {
+		query = query.Where("is_active = ?", true)
+	}
+	err := query.Find(&methods).Error
+	return methods, err
+}
+
+func (r *repository) GetReceivingMethodByID(ctx context.Context, id uuid.UUID) (*masterdata.ReceivingMethod, error) {
+	var rm masterdata.ReceivingMethod
+	err := r.getTx(ctx).First(&rm, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &rm, err
+}
+
+func (r *repository) GetReceivingMethodByCode(ctx context.Context, code string) (*masterdata.ReceivingMethod, error) {
+	var rm masterdata.ReceivingMethod
+	err := r.getTx(ctx).First(&rm, "code = ?", code).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &rm, err
+}
+
+func (r *repository) CreateReceivingMethod(ctx context.Context, rm *masterdata.ReceivingMethod) error {
+	return r.getTx(ctx).Create(rm).Error
+}
+
+func (r *repository) UpdateReceivingMethod(ctx context.Context, rm *masterdata.ReceivingMethod) error {
+	return r.getTx(ctx).Save(rm).Error
+}
+
+func (r *repository) GetUnits(ctx context.Context, activeOnly bool) ([]masterdata.UnitOfMeasure, error) {
+	var units []masterdata.UnitOfMeasure
+	query := r.getTx(ctx).Order("sort_order asc, name asc")
+	if activeOnly {
+		query = query.Where("is_active = ?", true)
+	}
+	err := query.Find(&units).Error
+	return units, err
+}
+
+func (r *repository) GetUnitByID(ctx context.Context, id uuid.UUID) (*masterdata.UnitOfMeasure, error) {
+	var u masterdata.UnitOfMeasure
+	err := r.getTx(ctx).First(&u, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &u, err
+}
+
+func (r *repository) GetUnitByCode(ctx context.Context, code string) (*masterdata.UnitOfMeasure, error) {
+	var u masterdata.UnitOfMeasure
+	err := r.getTx(ctx).First(&u, "code = ?", code).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &u, err
+}
+
+func (r *repository) CreateUnit(ctx context.Context, u *masterdata.UnitOfMeasure) error {
+	return r.getTx(ctx).Create(u).Error
+}
+
+func (r *repository) UpdateUnit(ctx context.Context, u *masterdata.UnitOfMeasure) error {
+	return r.getTx(ctx).Save(u).Error
+}
+
 func (r *repository) GetAccountMapping(ctx context.Context, key string) (*masterdata.AccountMapping, error) {
 	var m masterdata.AccountMapping
 	err := r.getTx(ctx).First(&m, "key = ?", key).Error

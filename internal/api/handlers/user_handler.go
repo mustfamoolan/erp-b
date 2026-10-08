@@ -282,3 +282,48 @@ func (h *UserHandler) RevokeScope(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"message": "scope access revoked"})
 }
+
+// ─── PUT /api/v1/users/:id/credentials ──────────────────────
+
+type updateCredentialsRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// UpdateCredentials updates username and/or password.
+func (h *UserHandler) UpdateCredentials(c *fiber.Ctx) error {
+	idStr := c.Params("id")
+	var userID uuid.UUID
+	var err error
+	if idStr == "me" {
+		currentUserID, ok := c.Locals("user_id").(string)
+		if !ok || currentUserID == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+		}
+		userID, err = uuid.Parse(currentUserID)
+	} else {
+		userID, err = uuid.Parse(idStr)
+	}
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user id"})
+	}
+
+	var req updateCredentialsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	if req.Username == "" && req.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "username or password required"})
+	}
+
+	if req.Password != "" && len(req.Password) < 6 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "password must be at least 6 characters"})
+	}
+
+	if err := h.userSvc.UpdateUserCredentials(c.Context(), userID, req.Username, req.Password); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "credentials updated successfully"})
+}

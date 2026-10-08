@@ -12,8 +12,8 @@ import (
 )
 
 type AreaService interface {
-	CreateArea(ctx context.Context, name, code, description string) (*organization.Area, error)
-	UpdateArea(ctx context.Context, id uuid.UUID, name, code, description string, status organization.AreaStatus) (*organization.Area, error)
+	CreateArea(ctx context.Context, name, code, governorate, description string) (*organization.Area, error)
+	UpdateArea(ctx context.Context, id uuid.UUID, name, code, governorate, description string, status organization.AreaStatus) (*organization.Area, error)
 	GetArea(ctx context.Context, id uuid.UUID) (*organization.Area, error)
 	ListAreas(ctx context.Context) ([]organization.Area, error)
 	DeleteArea(ctx context.Context, id uuid.UUID) error
@@ -27,12 +27,15 @@ func NewAreaService(repo repositories.AreaRepository) AreaService {
 	return &areaService{repo: repo}
 }
 
-func (s *areaService) CreateArea(ctx context.Context, name, code, description string) (*organization.Area, error) {
+func (s *areaService) CreateArea(ctx context.Context, name, code, governorate, description string) (*organization.Area, error) {
 	if name == "" {
 		return nil, errors.New("name is required")
 	}
 	if code == "" {
 		code = "AREA-" + strings.ToUpper(uuid.New().String()[:6])
+	}
+	if governorate == "" {
+		governorate = "بغداد"
 	}
 
 	existing, err := s.repo.FindByCode(ctx, code)
@@ -46,6 +49,7 @@ func (s *areaService) CreateArea(ctx context.Context, name, code, description st
 	area := &organization.Area{
 		Name:        name,
 		Code:        code,
+		Governorate: governorate,
 		Description: description,
 		Status:      organization.AreaStatusActive,
 	}
@@ -57,7 +61,7 @@ func (s *areaService) CreateArea(ctx context.Context, name, code, description st
 	return area, nil
 }
 
-func (s *areaService) UpdateArea(ctx context.Context, id uuid.UUID, name, code, description string, status organization.AreaStatus) (*organization.Area, error) {
+func (s *areaService) UpdateArea(ctx context.Context, id uuid.UUID, name, code, governorate, description string, status organization.AreaStatus) (*organization.Area, error) {
 	area, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -78,6 +82,9 @@ func (s *areaService) UpdateArea(ctx context.Context, id uuid.UUID, name, code, 
 
 	area.Name = name
 	area.Code = code
+	if governorate != "" {
+		area.Governorate = governorate
+	}
 	area.Description = description
 	if status != "" {
 		area.Status = status
