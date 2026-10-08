@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
+	"m3aml-erp/bootstrap"
 	"m3aml-erp/internal/domain/organization"
 	"m3aml-erp/internal/repositories"
 
@@ -58,6 +60,8 @@ func (s *areaService) CreateArea(ctx context.Context, name, code, governorate, d
 		return nil, err
 	}
 
+	bootstrap.InvalidateOrgCache()
+
 	return area, nil
 }
 
@@ -94,6 +98,8 @@ func (s *areaService) UpdateArea(ctx context.Context, id uuid.UUID, name, code, 
 		return nil, err
 	}
 
+	bootstrap.InvalidateOrgCache()
+
 	return area, nil
 }
 
@@ -102,9 +108,15 @@ func (s *areaService) GetArea(ctx context.Context, id uuid.UUID) (*organization.
 }
 
 func (s *areaService) ListAreas(ctx context.Context) ([]organization.Area, error) {
-	return s.repo.FindAll(ctx)
+	return bootstrap.CacheRemember("org:areas:all", 12*time.Hour, func() ([]organization.Area, error) {
+		return s.repo.FindAll(ctx)
+	})
 }
 
 func (s *areaService) DeleteArea(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+	err := s.repo.Delete(ctx, id)
+	if err == nil {
+		bootstrap.InvalidateOrgCache()
+	}
+	return err
 }

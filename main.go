@@ -412,6 +412,7 @@ func main() {
 	// ════════════════════════════════════════════════════════
 	md := p.Group("/master-data")
 	
+	md.Get("/bundle", masterDataHandler.GetBundle)
 	md.Get("/request-types", masterDataHandler.GetRequestTypes)
 	md.Post("/request-types", apimw.RequirePermission(userRepo, identity.PermMasterDataCreate), masterDataHandler.CreateRequestType)
 	md.Put("/request-types/:id", apimw.RequirePermission(userRepo, identity.PermMasterDataUpdate), masterDataHandler.UpdateRequestType)

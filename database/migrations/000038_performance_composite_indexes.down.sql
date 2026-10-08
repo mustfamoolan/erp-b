@@ -1,0 +1,11 @@
+DROP INDEX IF EXISTS idx_freq_scope_created_desc;
+DROP INDEX IF EXISTS idx_freq_factory_created_desc;
+DROP INDEX IF EXISTS idx_freq_status_created_desc;
+DROP INDEX IF EXISTS idx_freq_status_scope_created;
+DROP INDEX IF EXISTS idx_freq_adv_seq;
+DROP INDEX IF EXISTS idx_request_items_exp_cat;
+DROP INDEX IF EXISTS idx_request_history_req_created;
+DROP INDEX IF EXISTS idx_cash_tx_box_created;
+DROP INDEX IF EXISTS idx_scopes_type;
+DROP INDEX IF EXISTS idx_scopes_area_id;
+DROP INDEX IF EXISTS idx_areas_status;

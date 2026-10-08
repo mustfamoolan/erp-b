@@ -37,6 +37,16 @@ type FactoryExpenseTypeInput struct {
 	SortOrder int    `json:"sort_order"`
 }
 
+// -- Master Data Bundle --
+
+func (h *MasterDataHandler) GetBundle(c *fiber.Ctx) error {
+	bundle, err := h.service.GetBundle(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{"data": bundle})
+}
+
 // -- Request Types --
 
 func (h *MasterDataHandler) GetRequestTypes(c *fiber.Ctx) error {

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"m3aml-erp/bootstrap"
 	appaudit "m3aml-erp/internal/application/audit"
 	"m3aml-erp/internal/domain/accounting"
 	domainaudit "m3aml-erp/internal/domain/audit"
@@ -21,7 +23,18 @@ var (
 	ErrInvalidParent = errors.New("invalid parent account mapping")
 )
 
+type MasterDataBundle struct {
+	RequestTypes        []masterdata.RequestType        `json:"request_types"`
+	ExpenseCategories   []masterdata.ExpenseCategory    `json:"expense_categories"`
+	FactoryExpenseTypes []masterdata.FactoryExpenseType `json:"factory_expense_types"`
+	ReceivingMethods    []masterdata.ReceivingMethod    `json:"receiving_methods"`
+	Units               []masterdata.UnitOfMeasure      `json:"units"`
+}
+
 type MasterDataService interface {
+	// Bundle for instant single-flight hydration
+	GetBundle(ctx context.Context) (*MasterDataBundle, error)
+
 	// Request Types
 	GetRequestTypes(ctx context.Context, activeOnly bool) ([]masterdata.RequestType, error)
 	CreateRequestType(ctx context.Context, req masterdata.RequestType, userID uuid.UUID) (*masterdata.RequestType, error)
@@ -71,8 +84,43 @@ func NewMasterDataService(
 	}
 }
 
+func (s *service) GetBundle(ctx context.Context) (*MasterDataBundle, error) {
+	return bootstrap.CacheRemember("md:bundle", 24*time.Hour, func() (*MasterDataBundle, error) {
+		rt, err := s.repo.GetRequestTypes(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		ec, err := s.repo.GetExpenseCategories(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		fet, err := s.repo.GetFactoryExpenseTypes(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		rm, err := s.repo.GetReceivingMethods(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		u, err := s.repo.GetUnits(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		return &MasterDataBundle{
+			RequestTypes:        rt,
+			ExpenseCategories:   ec,
+			FactoryExpenseTypes: fet,
+			ReceivingMethods:    rm,
+			Units:               u,
+		}, nil
+	})
+}
+
 func (s *service) GetRequestTypes(ctx context.Context, activeOnly bool) ([]masterdata.RequestType, error) {
-	return s.repo.GetRequestTypes(ctx, activeOnly)
+	key := fmt.Sprintf("md:request_types:%t", activeOnly)
+	return bootstrap.CacheRemember(key, 24*time.Hour, func() ([]masterdata.RequestType, error) {
+		return s.repo.GetRequestTypes(ctx, activeOnly)
+	})
 }
 
 func (s *service) CreateRequestType(ctx context.Context, req masterdata.RequestType, userID uuid.UUID) (*masterdata.RequestType, error) {
@@ -88,6 +136,8 @@ func (s *service) CreateRequestType(ctx context.Context, req masterdata.RequestT
 	if err := s.repo.CreateRequestType(ctx, &req); err != nil {
 		return nil, err
 	}
+
+	bootstrap.InvalidateMasterDataCache()
 
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &req.ID,
@@ -119,6 +169,8 @@ func (s *service) UpdateRequestType(ctx context.Context, id uuid.UUID, updates m
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &rt.ID,
 		EntityType: "master_data_request_type",
@@ -147,6 +199,8 @@ func (s *service) ToggleRequestType(ctx context.Context, id uuid.UUID, active bo
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &rt.ID,
 		EntityType: "master_data_request_type",
@@ -160,7 +214,10 @@ func (s *service) ToggleRequestType(ctx context.Context, id uuid.UUID, active bo
 }
 
 func (s *service) GetExpenseCategories(ctx context.Context, activeOnly bool) ([]masterdata.ExpenseCategory, error) {
-	return s.repo.GetExpenseCategories(ctx, activeOnly)
+	key := fmt.Sprintf("md:expense_categories:%t", activeOnly)
+	return bootstrap.CacheRemember(key, 24*time.Hour, func() ([]masterdata.ExpenseCategory, error) {
+		return s.repo.GetExpenseCategories(ctx, activeOnly)
+	})
 }
 
 func (s *service) CreateExpenseCategory(ctx context.Context, req masterdata.ExpenseCategory, userID uuid.UUID) (*masterdata.ExpenseCategory, error) {
@@ -253,6 +310,8 @@ func (s *service) CreateExpenseCategory(ctx context.Context, req masterdata.Expe
 		return nil, err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &req.ID,
 		EntityType: "master_data_expense_category",
@@ -283,6 +342,8 @@ func (s *service) UpdateExpenseCategory(ctx context.Context, id uuid.UUID, updat
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &ec.ID,
 		EntityType: "master_data_expense_category",
@@ -311,6 +372,8 @@ func (s *service) ToggleExpenseCategory(ctx context.Context, id uuid.UUID, activ
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &ec.ID,
 		EntityType: "master_data_expense_category",
@@ -324,7 +387,10 @@ func (s *service) ToggleExpenseCategory(ctx context.Context, id uuid.UUID, activ
 }
 
 func (s *service) GetFactoryExpenseTypes(ctx context.Context, activeOnly bool) ([]masterdata.FactoryExpenseType, error) {
-	return s.repo.GetFactoryExpenseTypes(ctx, activeOnly)
+	key := fmt.Sprintf("md:factory_expense_types:%t", activeOnly)
+	return bootstrap.CacheRemember(key, 24*time.Hour, func() ([]masterdata.FactoryExpenseType, error) {
+		return s.repo.GetFactoryExpenseTypes(ctx, activeOnly)
+	})
 }
 
 func (s *service) CreateFactoryExpenseType(ctx context.Context, req masterdata.FactoryExpenseType, userID uuid.UUID) (*masterdata.FactoryExpenseType, error) {
@@ -340,6 +406,8 @@ func (s *service) CreateFactoryExpenseType(ctx context.Context, req masterdata.F
 	if err := s.repo.CreateFactoryExpenseType(ctx, &req); err != nil {
 		return nil, err
 	}
+
+	bootstrap.InvalidateMasterDataCache()
 
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &req.ID,
@@ -370,6 +438,8 @@ func (s *service) UpdateFactoryExpenseType(ctx context.Context, id uuid.UUID, up
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &fet.ID,
 		EntityType: "master_data_factory_expense_type",
@@ -398,6 +468,8 @@ func (s *service) ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, ac
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &fet.ID,
 		EntityType: "master_data_factory_expense_type",
@@ -413,7 +485,10 @@ func (s *service) ToggleFactoryExpenseType(ctx context.Context, id uuid.UUID, ac
 // ─── Receiving Methods ───────────────────────────────────────────────────────
 
 func (s *service) GetReceivingMethods(ctx context.Context, activeOnly bool) ([]masterdata.ReceivingMethod, error) {
-	return s.repo.GetReceivingMethods(ctx, activeOnly)
+	key := fmt.Sprintf("md:receiving_methods:%t", activeOnly)
+	return bootstrap.CacheRemember(key, 24*time.Hour, func() ([]masterdata.ReceivingMethod, error) {
+		return s.repo.GetReceivingMethods(ctx, activeOnly)
+	})
 }
 
 func (s *service) CreateReceivingMethod(ctx context.Context, req masterdata.ReceivingMethod, userID uuid.UUID) (*masterdata.ReceivingMethod, error) {
@@ -436,6 +511,8 @@ func (s *service) CreateReceivingMethod(ctx context.Context, req masterdata.Rece
 	if err := s.repo.CreateReceivingMethod(ctx, &req); err != nil {
 		return nil, err
 	}
+
+	bootstrap.InvalidateMasterDataCache()
 
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &req.ID,
@@ -465,6 +542,8 @@ func (s *service) UpdateReceivingMethod(ctx context.Context, id uuid.UUID, updat
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &rm.ID,
 		EntityType: "master_data_receiving_method",
@@ -493,6 +572,8 @@ func (s *service) ToggleReceivingMethod(ctx context.Context, id uuid.UUID, activ
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &rm.ID,
 		EntityType: "master_data_receiving_method",
@@ -508,7 +589,10 @@ func (s *service) ToggleReceivingMethod(ctx context.Context, id uuid.UUID, activ
 // ─── Units of Measure ────────────────────────────────────────────────────────
 
 func (s *service) GetUnits(ctx context.Context, activeOnly bool) ([]masterdata.UnitOfMeasure, error) {
-	return s.repo.GetUnits(ctx, activeOnly)
+	key := fmt.Sprintf("md:units:%t", activeOnly)
+	return bootstrap.CacheRemember(key, 24*time.Hour, func() ([]masterdata.UnitOfMeasure, error) {
+		return s.repo.GetUnits(ctx, activeOnly)
+	})
 }
 
 func (s *service) CreateUnit(ctx context.Context, req masterdata.UnitOfMeasure, userID uuid.UUID) (*masterdata.UnitOfMeasure, error) {
@@ -530,6 +614,8 @@ func (s *service) CreateUnit(ctx context.Context, req masterdata.UnitOfMeasure, 
 	if err := s.repo.CreateUnit(ctx, &req); err != nil {
 		return nil, err
 	}
+
+	bootstrap.InvalidateMasterDataCache()
 
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &req.ID,
@@ -559,6 +645,8 @@ func (s *service) UpdateUnit(ctx context.Context, id uuid.UUID, updates masterda
 		return err
 	}
 
+	bootstrap.InvalidateMasterDataCache()
+
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &u.ID,
 		EntityType: "master_data_unit_of_measure",
@@ -586,6 +674,8 @@ func (s *service) ToggleUnit(ctx context.Context, id uuid.UUID, active bool, use
 	if err := s.repo.UpdateUnit(ctx, u); err != nil {
 		return err
 	}
+
+	bootstrap.InvalidateMasterDataCache()
 
 	s.auditSvc.RecordAudit(ctx, appaudit.RecordAuditInput{
 		EntityID:   &u.ID,

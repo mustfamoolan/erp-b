@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	appaudit "m3aml-erp/internal/application/audit"
+	"m3aml-erp/bootstrap"
 	"m3aml-erp/internal/domain/accounting"
 	domainaudit "m3aml-erp/internal/domain/audit"
 	"m3aml-erp/internal/domain/organization"
@@ -168,17 +169,23 @@ func (s *ScopeService) CreateFactory(ctx context.Context, req organization.Organ
 		})
 	}
 
+	bootstrap.InvalidateOrgCache()
+
 	return &req, nil
 }
 
 // GetAllScopes returns all scopes ordered by type and name.
 func (s *ScopeService) GetAllScopes(ctx context.Context) ([]organization.OrganizationScope, error) {
-	return s.scopeRepo.FindAll(ctx)
+	return bootstrap.CacheRemember("org:scopes:all", 12*time.Hour, func() ([]organization.OrganizationScope, error) {
+		return s.scopeRepo.FindAll(ctx)
+	})
 }
 
 // GetFactories returns all active factory scopes.
 func (s *ScopeService) GetFactories(ctx context.Context) ([]organization.OrganizationScope, error) {
-	return s.scopeRepo.FindByType(ctx, organization.ScopeTypeFactory)
+	return bootstrap.CacheRemember("org:factories:all", 12*time.Hour, func() ([]organization.OrganizationScope, error) {
+		return s.scopeRepo.FindByType(ctx, organization.ScopeTypeFactory)
+	})
 }
 
 // GetScopeByID returns a scope by its ID.
@@ -188,7 +195,7 @@ func (s *ScopeService) GetScopeByID(ctx context.Context, id uuid.UUID) (*organiz
 
 // UpdateScope updates a scope and optionally its cashbox target opening balance.
 func (s *ScopeService) UpdateScope(ctx context.Context, scope *organization.OrganizationScope, targetOpeningBalance float64, userID uuid.UUID) error {
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		txCtx := context.WithValue(ctx, "tx", tx)
 
 		if err := s.scopeRepo.Update(txCtx, scope); err != nil {
@@ -223,4 +230,10 @@ func (s *ScopeService) UpdateScope(ctx context.Context, scope *organization.Orga
 
 		return nil
 	})
+
+	if err == nil {
+		bootstrap.InvalidateOrgCache()
+	}
+
+	return err
 }

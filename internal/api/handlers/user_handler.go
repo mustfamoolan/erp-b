@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"m3aml-erp/bootstrap"
 	appidentity "m3aml-erp/internal/application/identity"
 	"m3aml-erp/internal/repositories"
 )
@@ -66,31 +69,38 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 
 // ─── GET /api/v1/users/lookup ──────────────────────────────
 
+type LookupUser struct {
+	ID       string `json:"id"`
+	FullName string `json:"full_name"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+}
+
 // ListUsersLookup returns basic user info (id, name, full_name, username) for display resolution.
-// Accessible to any authenticated user so UUIDs can be resolved to employee names.
+// Cached in Redis with fast zero-latency response.
 func (h *UserHandler) ListUsersLookup(c *fiber.Ctx) error {
-	users, err := h.userSvc.ListUsers(c.Context())
+	result, err := bootstrap.CacheRemember("org:users:lookup", 1*time.Hour, func() ([]LookupUser, error) {
+		users, err := h.userSvc.ListUsers(c.Context())
+		if err != nil {
+			return nil, err
+		}
+		res := make([]LookupUser, 0, len(users))
+		for _, u := range users {
+			displayName := u.FullName
+			if displayName == "" {
+				displayName = u.Username
+			}
+			res = append(res, LookupUser{
+				ID:       u.ID.String(),
+				FullName: displayName,
+				Name:     displayName,
+				Username: u.Username,
+			})
+		}
+		return res, nil
+	})
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to fetch users"})
-	}
-	type lookupUser struct {
-		ID       string `json:"id"`
-		FullName string `json:"full_name"`
-		Name     string `json:"name"`
-		Username string `json:"username"`
-	}
-	result := make([]lookupUser, 0, len(users))
-	for _, u := range users {
-		displayName := u.FullName
-		if displayName == "" {
-			displayName = u.Username
-		}
-		result = append(result, lookupUser{
-			ID:       u.ID.String(),
-			FullName: displayName,
-			Name:     displayName,
-			Username: u.Username,
-		})
 	}
 	return c.JSON(fiber.Map{"data": result})
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"m3aml-erp/bootstrap"
 	appaudit "m3aml-erp/internal/application/audit"
 	domainaudit "m3aml-erp/internal/domain/audit"
 	"m3aml-erp/internal/domain/workflow"
@@ -202,6 +203,8 @@ func (s *RequestService) CreateRequest(ctx context.Context, input CreateRequestI
 		})
 	}
 
+	bootstrap.InvalidateRequestsCache(input.ScopeID.String())
+
 	return req, nil
 }
 
@@ -281,6 +284,8 @@ func (s *RequestService) Transition(ctx context.Context, input TransitionInput) 
 		})
 	}
 
+	bootstrap.InvalidateRequestsCache(req.ScopeID.String())
+
 	return req, nil
 }
 
@@ -319,6 +324,8 @@ func (s *RequestService) Disburse(ctx context.Context, requestID, performedBy uu
 			NewValues:  map[string]any{"status": string(workflow.RequestDisbursed), "notes": notes},
 		})
 	}
+
+	bootstrap.InvalidateRequestsCache(req.ScopeID.String())
 
 	return req, nil
 }
@@ -373,29 +380,39 @@ func (s *RequestService) Deliver(ctx context.Context, requestID, performedBy uui
 		})
 	}
 
+	bootstrap.InvalidateRequestsCache(req.ScopeID.String())
+
 	return req, nil
 }
 
-// GetByID returns a request with its items and history
+// GetByID returns a request with its items and history (Redis Cached)
 func (s *RequestService) GetByID(ctx context.Context, id uuid.UUID) (*workflow.FinancialRequest, error) {
-	req, err := s.requestRepo.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if req == nil {
-		return nil, fmt.Errorf("request not found")
-	}
-	return req, nil
+	key := fmt.Sprintf("requests:detail:%s", id)
+	return bootstrap.CacheRemember(key, 10*time.Minute, func() (*workflow.FinancialRequest, error) {
+		req, err := s.requestRepo.FindByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if req == nil {
+			return nil, fmt.Errorf("request not found")
+		}
+		return req, nil
+	})
 }
 
-// GetByScope returns all requests for a given scope (factory) — Rule 5
+// GetByScope returns all requests for a given scope (factory) — Rule 5 (Redis Cached)
 func (s *RequestService) GetByScope(ctx context.Context, scopeID uuid.UUID) ([]workflow.FinancialRequest, error) {
-	return s.requestRepo.FindByScope(ctx, scopeID)
+	key := fmt.Sprintf("requests:scope:%s", scopeID)
+	return bootstrap.CacheRemember(key, 5*time.Minute, func() ([]workflow.FinancialRequest, error) {
+		return s.requestRepo.FindByScope(ctx, scopeID)
+	})
 }
 
-// GetAll returns all requests (Administration view) — Rule 7
+// GetAll returns all requests (Administration view) — Rule 7 (Redis Cached)
 func (s *RequestService) GetAll(ctx context.Context) ([]workflow.FinancialRequest, error) {
-	return s.requestRepo.FindAll(ctx)
+	return bootstrap.CacheRemember("requests:all", 5*time.Minute, func() ([]workflow.FinancialRequest, error) {
+		return s.requestRepo.FindAll(ctx)
+	})
 }
 
 // GetHistory returns the immutable audit trail for a request
